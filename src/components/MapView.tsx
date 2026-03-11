@@ -28,13 +28,24 @@ const createColoredIcon = (isOpen: boolean) => {
   });
 };
 
-function FlyToMarker({ lat, lng }: { lat: number | null; lng: number | null }) {
+function MapController({ lat, lng, zoom, selectedLat, selectedLng }: {
+  lat: number; lng: number; zoom: number;
+  selectedLat: number | null; selectedLng: number | null;
+}) {
   const map = useMap();
+
+  // Fly to city when center changes
   useEffect(() => {
-    if (lat !== null && lng !== null) {
-      map.flyTo([lat, lng], 15, { duration: 0.5 });
+    map.flyTo([lat, lng], zoom, { duration: 0.5 });
+  }, [lat, lng, zoom, map]);
+
+  // Fly to selected marker
+  useEffect(() => {
+    if (selectedLat !== null && selectedLng !== null) {
+      map.flyTo([selectedLat, selectedLng], 15, { duration: 0.5 });
     }
-  }, [lat, lng, map]);
+  }, [selectedLat, selectedLng, map]);
+
   return null;
 }
 
@@ -42,16 +53,18 @@ interface MapViewProps {
   professionals: Professional[];
   selectedId: string | null;
   onMarkerClick: (id: string) => void;
+  center: [number, number];
+  zoom: number;
 }
 
-const MapView = ({ professionals, selectedId, onMarkerClick }: MapViewProps) => {
+const MapView = ({ professionals, selectedId, onMarkerClick, center, zoom }: MapViewProps) => {
   const selected = professionals.find((p) => p.id === selectedId);
 
   return (
     <div className="w-full h-full">
       <MapContainer
-        center={[-34.6037, -58.3816]}
-        zoom={13}
+        center={center}
+        zoom={zoom}
         scrollWheelZoom={true}
         className="w-full h-full"
       >
@@ -59,9 +72,12 @@ const MapView = ({ professionals, selectedId, onMarkerClick }: MapViewProps) => 
           attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
         />
-        <FlyToMarker
-          lat={selected?.lat ?? null}
-          lng={selected?.lng ?? null}
+        <MapController
+          lat={center[0]}
+          lng={center[1]}
+          zoom={zoom}
+          selectedLat={selected?.lat ?? null}
+          selectedLng={selected?.lng ?? null}
         />
         {professionals.map((p) => (
           <Marker
