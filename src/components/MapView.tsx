@@ -1,0 +1,83 @@
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
+import L from "leaflet";
+import "leaflet/dist/leaflet.css";
+import { Professional } from "@/data/professionals";
+import { useEffect } from "react";
+
+// Fix default marker icon
+delete (L.Icon.Default.prototype as any)._getIconUrl;
+L.Icon.Default.mergeOptions({
+  iconRetinaUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon-2x.png",
+  iconUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-icon.png",
+  shadowUrl: "https://cdnjs.cloudflare.com/ajax/libs/leaflet/1.9.4/images/marker-shadow.png",
+});
+
+const createColoredIcon = (isOpen: boolean) => {
+  const color = isOpen ? "#34C759" : "#FF3B30";
+  return L.divIcon({
+    className: "custom-marker",
+    html: `<div style="
+      width: 24px; height: 24px; border-radius: 50% 50% 50% 0;
+      background: ${color}; border: 2px solid white;
+      transform: rotate(-45deg);
+      box-shadow: 0 0 0 1px ${color};
+    "></div>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 24],
+    popupAnchor: [0, -24],
+  });
+};
+
+function FlyToMarker({ lat, lng }: { lat: number | null; lng: number | null }) {
+  const map = useMap();
+  useEffect(() => {
+    if (lat !== null && lng !== null) {
+      map.flyTo([lat, lng], 15, { duration: 0.5 });
+    }
+  }, [lat, lng, map]);
+  return null;
+}
+
+interface MapViewProps {
+  professionals: Professional[];
+  selectedId: string | null;
+  onMarkerClick: (id: string) => void;
+}
+
+const MapView = ({ professionals, selectedId, onMarkerClick }: MapViewProps) => {
+  const selected = professionals.find((p) => p.id === selectedId);
+
+  return (
+    <div className="w-full h-full">
+      <MapContainer
+        center={[-34.6037, -58.3816]}
+        zoom={13}
+        scrollWheelZoom={true}
+        className="w-full h-full"
+      >
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OSM</a>'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
+        <FlyToMarker
+          lat={selected?.lat ?? null}
+          lng={selected?.lng ?? null}
+        />
+        {professionals.map((p) => (
+          <Marker
+            key={p.id}
+            position={[p.lat, p.lng]}
+            icon={createColoredIcon(p.isOpen)}
+            eventHandlers={{ click: () => onMarkerClick(p.id) }}
+          >
+            <Popup>
+              <span className="font-mono text-sm font-semibold">{p.name}</span>
+            </Popup>
+          </Marker>
+        ))}
+      </MapContainer>
+    </div>
+  );
+};
+
+export default MapView;
